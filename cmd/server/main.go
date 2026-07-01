@@ -51,7 +51,7 @@ func eventHandler(rw http.ResponseWriter, r *http.Request) {
 
 func eventListHandler(rw http.ResponseWriter, r *http.Request) {
 
-	StorageBytes, err := json.Marshal(storage.Storage)
+	StorageBytes, err := json.Marshal(storage.GetAllEvents())
 
 	if err != nil {
 		fmt.Println("can`t create json with event data: ", err)
@@ -83,10 +83,10 @@ func userEventsHistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println("can`t marshal events: ", err)
 		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusBadRequest)
+		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	
+
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(userEventsBytes)
