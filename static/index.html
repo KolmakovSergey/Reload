@@ -14,8 +14,108 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f7fa;
-            padding: 30px;
+            padding-top: 80px;
         }
+
+        /* Навбар */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #2c3e50;
+            color: white;
+            padding: 12px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        .navbar .brand {
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .navbar .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .navbar .controls input {
+            padding: 7px 12px;
+            border-radius: 30px;
+            border: none;
+            font-size: 0.95rem;
+            width: 120px;
+        }
+        .navbar .controls button {
+            background: #ecf0f1;
+            border: none;
+            padding: 7px 18px;
+            border-radius: 30px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        .navbar .controls button:hover {
+            background: #d5dbdf;
+        }
+        .navbar .controls button.primary {
+            background: #3498db;
+            color: white;
+        }
+        .navbar .controls button.primary:hover {
+            background: #2980b9;
+        }
+
+        /* Контейнер для списка событий */
+        .events-container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            display: none;
+        }
+        .events-container.active {
+            display: block;
+        }
+        .events-container h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .events-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .events-table th {
+            background: #34495e;
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        .events-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .events-table tr:last-child td {
+            border-bottom: none;
+        }
+        .events-table .empty-message {
+            text-align: center;
+            padding: 25px 0;
+            color: #7f8c8d;
+        }
+
+        /* Остальные стили для товаров */
         h1 {
             text-align: center;
             color: #2c3e50;
@@ -28,6 +128,7 @@
             flex-wrap: wrap;
             justify-content: center;
             gap: 30px;
+            padding: 0 20px;
         }
         .product-card {
             background: #ffffff;
@@ -124,6 +225,7 @@
             transform: translateY(20px);
             transition: opacity 0.4s, transform 0.4s;
             pointer-events: none;
+            z-index: 200;
         }
         .toast.show {
             opacity: 1;
@@ -139,17 +241,45 @@
 </head>
 <body>
 
+    <!-- Навбар -->
+    <nav class="navbar">
+        <span class="brand">🛒 Shop</span>
+        <div class="controls">
+            <input type="number" id="userIdInput" placeholder="ID пользователя" value="11111" min="1" />
+            <button class="primary" id="showUserEventsBtn">👤 События пользователя</button>
+            <button id="showAllEventsBtn">📋 Все события</button>
+        </div>
+    </nav>
+
+    <!-- Контейнер для списка событий -->
+    <div id="eventsContainer" class="events-container">
+        <h2 id="eventsTitle">Список событий</h2>
+        <table class="events-table" id="eventsTable">
+            <thead>
+                <tr>
+                    <th>ID пользователя</th>
+                    <th>ID товара</th>
+                    <th>Действие</th>
+                    <th>Время</th>
+                </tr>
+            </thead>
+            <tbody id="eventsBody">
+                <!-- строки будут вставлены скриптом -->
+            </tbody>
+        </table>
+    </div>
+
     <h1>Наши товары 🛒</h1>
 
     <div class="products" id="productContainer">
-        <!-- Товары будут вставлены через JavaScript (или можно прописать статически) -->
+        <!-- Товары будут вставлены через JavaScript -->
     </div>
 
     <!-- Всплывающее уведомление -->
     <div id="toast" class="toast"></div>
 
     <script>
-        // Данные о товарах (можно расширить)
+        // Данные о товарах
         const products = [{
             id: 1,
             name: 'Смартфон X',
@@ -175,19 +305,16 @@
             const eventData = {
                 userId: userId,
                 productId: productId,
-                action: action,          // 'view', 'add_to_cart', 'purchase'
+                action: action,
                 timestamp: new Date().toISOString()
             };
 
-            // Здесь укажите URL вашего серверного эндпоинта
             const url = "/event";
-            
+
             try {
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(eventData)
                 });
 
@@ -204,11 +331,96 @@
             }
         }
 
+        // Универсальная функция для заполнения таблицы событиями
+        function renderEvents(events, title = 'Список событий') {
+            const container = document.getElementById('eventsContainer');
+            const tbody = document.getElementById('eventsBody');
+            const titleEl = document.getElementById('eventsTitle');
+
+            titleEl.textContent = title;
+            tbody.innerHTML = '';
+
+            if (!events || events.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="empty-message">Событий пока нет</td></tr>`;
+            } else {
+                events.forEach(ev => {
+                    // Определяем поля с учётом возможного регистра
+                    const userId = ev.userId || ev.UserID || '-';
+                    const productId = ev.productId || ev.ProductID || '-';
+                    const action = ev.action || ev.Action || '-';
+                    const timestamp = ev.timestamp || ev.Timestamp;
+                    let timeStr = '-';
+                    if (timestamp) {
+                        const date = new Date(timestamp);
+                        if (!isNaN(date.getTime())) {
+                            timeStr = date.toLocaleString();
+                        }
+                    }
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${userId}</td>
+                        <td>${productId}</td>
+                        <td>${action}</td>
+                        <td>${timeStr}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            container.classList.add('active');
+        }
+
+        // Получение всех событий
+        async function fetchAllEvents() {
+            const tbody = document.getElementById('eventsBody');
+            try {
+                const response = await fetch('/eventlist', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+
+                const events = await response.json();
+                renderEvents(events, 'Все события');
+            } catch (error) {
+                console.error('Ошибка загрузки событий:', error);
+                showToast(`❌ Не удалось загрузить события: ${error.message}`, 'error');
+                tbody.innerHTML = `<tr><td colspan="4" class="empty-message" style="color: #e74c3c;">Ошибка загрузки: ${error.message}</td></tr>`;
+                document.getElementById('eventsContainer').classList.add('active');
+            }
+        }
+
+        // Получение событий конкретного пользователя
+        async function fetchUserEvents(userId) {
+            const tbody = document.getElementById('eventsBody');
+            try {
+                const response = await fetch(`/user/${userId}/history`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+
+                const events = await response.json();
+                renderEvents(events, `События пользователя #${userId}`);
+            } catch (error) {
+                console.error('Ошибка загрузки событий пользователя:', error);
+                showToast(`❌ Не удалось загрузить события: ${error.message}`, 'error');
+                tbody.innerHTML = `<tr><td colspan="4" class="empty-message" style="color: #e74c3c;">Ошибка загрузки: ${error.message}</td></tr>`;
+                document.getElementById('eventsContainer').classList.add('active');
+            }
+        }
+
         // Показ уведомления
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
-            toast.className = 'toast'; // сброс классов
+            toast.className = 'toast';
             if (type === 'success') {
                 toast.classList.add('success');
             } else if (type === 'error') {
@@ -216,7 +428,6 @@
             }
             toast.classList.add('show');
 
-            // Скрыть через 3 секунды
             clearTimeout(window.toastTimeout);
             window.toastTimeout = setTimeout(() => {
                 toast.classList.remove('show');
@@ -226,7 +437,7 @@
         // Генерация карточек товаров
         function renderProducts() {
             const container = document.getElementById('productContainer');
-            container.innerHTML = ''; // очистка
+            container.innerHTML = '';
 
             products.forEach(product => {
                 const card = document.createElement('div');
@@ -247,17 +458,43 @@
                 container.appendChild(card);
             });
 
-            // Навешиваем обработчики на все кнопки внутри карточек
             container.querySelectorAll('.button-group button').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const productId = parseInt(this.dataset.id);
                     const action = this.dataset.action;
-                    sendEvent(0, productId, action);
+                    // Берём userId из поля ввода (по умолчанию 11111)
+                    const userIdInput = document.getElementById('userIdInput');
+                    const userId = parseInt(userIdInput.value) || 0;
+                    sendEvent(userId, productId, action);
                 });
             });
         }
 
-        // Запускаем рендеринг при загрузке страницы
+        // Обработчики кнопок
+        document.getElementById('showAllEventsBtn').addEventListener('click', function() {
+            const container = document.getElementById('eventsContainer');
+            if (container.classList.contains('active')) {
+                // Если уже показано, скрываем
+                container.classList.remove('active');
+            } else {
+                fetchAllEvents();
+            }
+        });
+
+        document.getElementById('showUserEventsBtn').addEventListener('click', function() {
+            const input = document.getElementById('userIdInput');
+            const userId = parseInt(input.value);
+            if (!userId || userId <= 0) {
+                showToast('❌ Введите корректный ID пользователя', 'error');
+                return;
+            }
+            const container = document.getElementById('eventsContainer');
+            // Если контейнер уже активен и показывает события того же пользователя, можно скрыть (опционально)
+            // Но проще всегда показывать новые данные
+            fetchUserEvents(userId);
+        });
+
+        // Запускаем рендеринг
         document.addEventListener('DOMContentLoaded', renderProducts);
     </script>
 
