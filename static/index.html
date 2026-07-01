@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Магазин товаров</title>
+    <style>
+        /* Общие стили */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+        .products {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+        .product-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            padding: 20px 20px 25px;
+            width: 260px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        }
+        .product-card img {
+            width: 100%;
+            max-height: 180px;
+            object-fit: cover;
+            border-radius: 12px;
+            background: #ecf0f1;
+        }
+        .product-card h3 {
+            margin: 15px 0 6px;
+            font-size: 1.3rem;
+            color: #2c3e50;
+        }
+        .product-card .description {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        .product-card .price {
+            font-weight: 600;
+            color: #27ae60;
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .button-group button {
+            padding: 10px 0;
+            border: none;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+        .button-group button:hover {
+            background: #d5dbdf;
+        }
+        .button-group button:active {
+            transform: scale(0.97);
+        }
+        .button-group .btn-view {
+            background: #3498db;
+            color: #fff;
+        }
+        .button-group .btn-view:hover {
+            background: #2980b9;
+        }
+        .button-group .btn-cart {
+            background: #f39c12;
+            color: #fff;
+        }
+        .button-group .btn-cart:hover {
+            background: #d68910;
+        }
+        .button-group .btn-buy {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .button-group .btn-buy:hover {
+            background: #c0392b;
+        }
+
+        /* Уведомление */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #2c3e50;
+            color: #fff;
+            padding: 14px 24px;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s, transform 0.4s;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast.success {
+            background: #27ae60;
+        }
+        .toast.error {
+            background: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Наши товары 🛒</h1>
+
+    <div class="products" id="productContainer">
+        <!-- Товары будут вставлены через JavaScript (или можно прописать статически) -->
+    </div>
+
+    <!-- Всплывающее уведомление -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Данные о товарах (можно расширить)
+        const products = [{
+            id: 1,
+            name: 'Смартфон X',
+            description: 'Мощный процессор, AMOLED-экран, 128 ГБ',
+            price: '49 990 ₽',
+            image: 'https://via.placeholder.com/300x200/2c3e50/ffffff?text=Phone+X'
+        }, {
+            id: 2,
+            name: 'Наушники Pro',
+            description: 'Активное шумоподавление, 40 ч работы',
+            price: '12 500 ₽',
+            image: 'https://via.placeholder.com/300x200/8e44ad/ffffff?text=Headphones'
+        }, {
+            id: 3,
+            name: 'Умные часы',
+            description: 'GPS, мониторинг сна, ударопрочные',
+            price: '22 300 ₽',
+            image: 'https://via.placeholder.com/300x200/16a085/ffffff?text=Watch'
+        }];
+
+        // Функция отправки события на сервер
+        async function sendEvent(userId, productId, action) {
+            const eventData = {
+                userId: userId,
+                productId: productId,
+                action: action,          // 'view', 'add_to_cart', 'purchase'
+                timestamp: new Date().toISOString()
+            };
+
+            // Здесь укажите URL вашего серверного эндпоинта
+            const url = "/event";
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(eventData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка сервера: ${response.status}`);
+                }
+
+                const result = await response.json();
+                showToast(`✅ Событие отправлено: ${action} для товара #${productId}`, 'success');
+                console.log('Ответ сервера:', result);
+            } catch (error) {
+                console.error('Ошибка при отправке:', error);
+                showToast(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        // Показ уведомления
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast'; // сброс классов
+            if (type === 'success') {
+                toast.classList.add('success');
+            } else if (type === 'error') {
+                toast.classList.add('error');
+            }
+            toast.classList.add('show');
+
+            // Скрыть через 3 секунды
+            clearTimeout(window.toastTimeout);
+            window.toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Генерация карточек товаров
+        function renderProducts() {
+            const container = document.getElementById('productContainer');
+            container.innerHTML = ''; // очистка
+
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+
+                card.innerHTML = `
+                    <img src="${product.image}" alt="${product.name}">
+                    <h3>${product.name}</h3>
+                    <div class="description">${product.description}</div>
+                    <div class="price">${product.price}</div>
+                    <div class="button-group">
+                        <button class="btn-view" data-id="${product.id}" data-action="view">👁 Посмотреть</button>
+                        <button class="btn-cart" data-id="${product.id}" data-action="addToCart">🛒 В корзину</button>
+                        <button class="btn-buy" data-id="${product.id}" data-action="purchase">💳 Купить</button>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+
+            // Навешиваем обработчики на все кнопки внутри карточек
+            container.querySelectorAll('.button-group button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const productId = parseInt(this.dataset.id);
+                    const action = this.dataset.action;
+                    sendEvent(0, productId, action);
+                });
+            });
+        }
+
+        // Запускаем рендеринг при загрузке страницы
+        document.addEventListener('DOMContentLoaded', renderProducts);
+    </script>
+
+</body>
+</html>
