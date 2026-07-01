@@ -32,3 +32,8 @@ func (e *EventRepo) GetEventsByUserId(id int) []models.Event {
 
 	return nil
 }
+
+func (e *EventRepo) GetAllEvents() []models.Event{
+	tmpStorage := e.Storage
+	return tmpStorage
+}
