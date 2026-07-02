@@ -2,12 +2,13 @@ package models
 
 import (
 	"errors"
-	"math/rand"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Event struct {
-	EventID   int
+	EventID   string
 	UserID    int
 	Action    string
 	ProductID int
@@ -26,7 +27,7 @@ func NewEvent(userId int, action string, productId int, timestamp time.Time) (Ev
 	switch action {
 	case "view", "addToCart", "purchase":
 		return Event{
-			EventID:   rand.Int(),
+			EventID:   uuid.New().String(),
 			UserID:    userId,
 			Action:    action,
 			ProductID: productId,
