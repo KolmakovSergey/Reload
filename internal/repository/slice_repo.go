@@ -7,7 +7,7 @@ import (
 
 type EventRepo struct {
 	Storage []models.Event
-	mut     sync.RWMutex
+	mu     sync.RWMutex
 }
 
 func NewEventSliceRepo(events []models.Event) *EventRepo {
@@ -17,8 +17,8 @@ func NewEventSliceRepo(events []models.Event) *EventRepo {
 }
 
 func (e *EventRepo) SaveEvent(event models.Event) error {
-	e.mut.Lock()
-	defer e.mut.Unlock()
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.Storage = append(e.Storage, event)
 	
 	return nil
@@ -27,13 +27,13 @@ func (e *EventRepo) SaveEvent(event models.Event) error {
 func (e *EventRepo) GetEventsByUserId(id int) ([]models.Event, error) {
 
 	var tempSlice []models.Event
-	e.mut.RLock()
+	e.mu.RLock()
 	for i := range e.Storage {
 		if e.Storage[i].UserID == id {
 			tempSlice = append(tempSlice, e.Storage[i])
 		}
 	}
-	e.mut.RUnlock()
+	e.mu.RUnlock()
 
 	if len(tempSlice) > 0 {
 		return tempSlice, nil
@@ -43,8 +43,8 @@ func (e *EventRepo) GetEventsByUserId(id int) ([]models.Event, error) {
 }
 
 func (e *EventRepo) GetAllEvents() ([]models.Event, error) {
-	e.mut.RLock()
-	defer e.mut.RUnlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 
 	eventsCopy := make([]models.Event, len(e.Storage))
     copy(eventsCopy, e.Storage)

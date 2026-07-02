@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -18,13 +17,4 @@ func NewErrorDTO(text string, code int) ErrorDTO {
 		Code:      code,
 		Timestamp: time.Now(),
 	}
-}
-
-func (e *ErrorDTO) MarshalErrorDTO() ([]byte, error) {
-	errBytesDTO, err := json.Marshal(e)
-	if err != nil {
-		return nil, err
-	}
-
-	return errBytesDTO, nil
 }

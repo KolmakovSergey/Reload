@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"reload/internal/models"
 	"reload/internal/repository"
@@ -18,7 +17,7 @@ var storage repository.EventStorage
 func SendError(rw http.ResponseWriter, code int, err error) {
 
 	errDTO := models.NewErrorDTO(err.Error(), code)
-	errBytes, err := errDTO.MarshalErrorDTO()
+	errBytes, err := json.Marshal(errDTO)
 	if err != nil {
 		fmt.Println("Can`t Marshal ErrorDTO: ", err)
 		return
@@ -33,16 +32,10 @@ func SendError(rw http.ResponseWriter, code int, err error) {
 
 func eventHandler(rw http.ResponseWriter, r *http.Request) {
 
-	event, err := io.ReadAll(r.Body)
-	if err != nil {
-		SendError(rw, http.StatusBadRequest, errors.New("Incorrect request content: "+err.Error()))
-		return
-	}
-
 	var newEvent models.EventDTO
 
-	if err := json.Unmarshal(event, &newEvent); err != nil {
-		SendError(rw, http.StatusInternalServerError, errors.New("Failed to unmarshal requestrequest content: "+err.Error()))
+	if err := json.NewDecoder(r.Body).Decode(&newEvent); err != nil {
+		SendError(rw, http.StatusBadRequest, errors.New("Incorrect request content: "+err.Error()))
 		return
 	}
 
@@ -62,7 +55,7 @@ func eventHandler(rw http.ResponseWriter, r *http.Request) {
 	// Устанавливаем заголовок Content-Type
 	rw.Header().Set("Content-Type", "application/json")
 	// Отправляем JSON-объект
-	rw.WriteHeader(http.StatusOK)
+	rw.WriteHeader(http.StatusCreated)
 	if _, err := rw.Write([]byte(`{"status":"ok","event":"saved"}`)); err != nil {
 		fmt.Println("Can`t write http answer:", err.Error())
 	}
