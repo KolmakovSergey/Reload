@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,87 +13,120 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var storage repository.EventRepo
+var storage repository.EventStorage
+
+func SendError(rw http.ResponseWriter, code int, err error) {
+
+	errDTO := models.NewErrorDTO(err.Error(), code)
+	errBytes, err := errDTO.MarshalErrorDTO()
+	if err != nil {
+		fmt.Println("Can`t Marshal ErrorDTO: ", err)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(code)
+	if _, err := rw.Write(errBytes); err != nil {
+		fmt.Println("Can`t write http answer:", err.Error())
+	}
+}
 
 func eventHandler(rw http.ResponseWriter, r *http.Request) {
 
 	event, err := io.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println("can`t read event: ", err)
-		rw.WriteHeader(http.StatusBadRequest)
+		SendError(rw, http.StatusBadRequest, errors.New("Incorrect request content: "+err.Error()))
 		return
 	}
 
 	var newEvent models.EventDTO
 
 	if err := json.Unmarshal(event, &newEvent); err != nil {
-		fmt.Println("can`t unmarshal event dto: ", err)
-		rw.WriteHeader(http.StatusInternalServerError)
+		SendError(rw, http.StatusInternalServerError, errors.New("Failed to unmarshal requestrequest content: "+err.Error()))
 		return
 	}
 
 	customEvent, err := models.NewEvent(newEvent.UserID, newEvent.Action, newEvent.ProductID, newEvent.Timestamp)
-
 	if err != nil {
-		fmt.Println("can`t create new event: ", err)
-		rw.WriteHeader(http.StatusBadRequest)
+		SendError(rw, http.StatusBadRequest, errors.New("Can`t create new event: "+err.Error()))
 		return
 	}
 
-	storage.SaveEvent(customEvent)
+	if err := storage.SaveEvent(customEvent); err != nil {
+		SendError(rw, http.StatusInternalServerError, errors.New("Can`t save event: "+err.Error()))
+		return
+	}
+
 	fmt.Println("Event save!")
 
 	// Устанавливаем заголовок Content-Type
 	rw.Header().Set("Content-Type", "application/json")
 	// Отправляем JSON-объект
 	rw.WriteHeader(http.StatusOK)
-	rw.Write([]byte(`{"status":"ok","event":"saved"}`))
+	if _, err := rw.Write([]byte(`{"status":"ok","event":"saved"}`)); err != nil {
+		fmt.Println("Can`t write http answer:", err.Error())
+	}
 }
 
 func eventListHandler(rw http.ResponseWriter, r *http.Request) {
 
-	StorageBytes, err := json.Marshal(storage.GetAllEvents())
+	tempStorage, err := storage.GetAllEvents()
+	if err != nil {
+		SendError(rw, http.StatusInternalServerError, errors.New("Can`t get data: "+err.Error()))
+		return
+	}
+
+	tempStorageBytes, err := json.Marshal(tempStorage)
 
 	if err != nil {
-		fmt.Println("can`t create json with event data: ", err)
-		rw.WriteHeader(http.StatusInternalServerError)
+		SendError(rw, http.StatusInternalServerError, errors.New("Can`t create json with data: "+err.Error()))
 		return
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
-	rw.Write(StorageBytes)
+
+	if _, err := rw.Write(tempStorageBytes); err != nil {
+		fmt.Println("Can`t write http answer:", err.Error())
+	}
 }
 
 func userEventsHistoryHandler(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userId := vars["user_id"]
-	userIdInt, err := strconv.Atoi(userId)
 
+	userIdInt, err := strconv.Atoi(userId)
 	if err != nil {
-		fmt.Println("can`t convert user id: ", err)
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusBadRequest)
+		SendError(rw, http.StatusBadRequest, errors.New("Incorrect user id: "+err.Error()))
 		return
 	}
 
-	userEvents := storage.GetEventsByUserId(userIdInt)
+	userEvents, err := storage.GetEventsByUserId(userIdInt)
+	if err != nil {
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	userEventsBytes, err := json.Marshal(userEvents)
 
 	if err != nil {
-		fmt.Println("can`t marshal events: ", err)
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusInternalServerError)
+		SendError(rw, http.StatusInternalServerError, errors.New("Can`t marshal data: "+err.Error()))
 		return
+
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
-	rw.Write(userEventsBytes)
+
+	if _, err := rw.Write(userEventsBytes); err != nil {
+		fmt.Println("Can`t write http answer:", err.Error())
+	}
 }
 
 func main() {
+
+	storage = repository.NewEventSliceRepo([]models.Event{})
 
 	fs := http.FileServer(http.Dir("C:/GO/Reload/static"))
 
