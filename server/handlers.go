@@ -98,8 +98,7 @@ func (e *EventsHandlers) UserEventsHistoryHandler(rw http.ResponseWriter, r *htt
 
 	userEvents, err := e.Repo.GetEventsByUserId(userIdInt)
 	if err != nil {
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusNoContent)
+		sendError(rw, http.StatusInternalServerError, errors.New("Can`t execute query: "+err.Error()))
 		return
 	}
 
