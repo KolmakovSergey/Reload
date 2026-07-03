@@ -1,13 +1,13 @@
-package models
+package server
 
 import (
 	"time"
 )
 
 type ErrorDTO struct {
-	Text      string    `json:"text"`
-	Code      int       `json:"code"`
-	Timestamp time.Time `json:"timestamp"`
+	Text       string    `json:"text"`
+	Code       int       `json:"code"`
+	HappenedAt time.Time `json:"happenedAt"`
 }
 
 func NewErrorDTO(text string, code int) ErrorDTO {
@@ -15,6 +15,6 @@ func NewErrorDTO(text string, code int) ErrorDTO {
 	return ErrorDTO{
 		Text:      text,
 		Code:      code,
-		Timestamp: time.Now(),
+		HappenedAt: time.Now(),
 	}
 }

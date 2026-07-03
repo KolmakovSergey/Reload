@@ -347,8 +347,8 @@
                     // Определяем поля с учётом возможного регистра
                     const userId = ev.userId || ev.UserID || '-';
                     const productId = ev.productId || ev.ProductID || '-';
-                    const action = ev.action || ev.Action || '-';
-                    const timestamp = ev.timestamp || ev.Timestamp;
+                    const action = ev.activity || ev.Activity || '-';
+                    const timestamp = ev.HappenedAt || '-';
                     let timeStr = '-';
                     if (timestamp) {
                         const date = new Date(timestamp);

@@ -8,33 +8,43 @@ import (
 )
 
 type Event struct {
-	EventID   string
-	UserID    int
-	Action    string
-	ProductID int
-	Timestamp time.Time
+	EventID    string
+	UserID     int
+	Activity   string
+	ProductID  int
+	HappenedAt time.Time
 }
 
-type EventDTO struct {
-	UserID    int       `json:"userId"`
-	Action    string    `json:"action"`
-	ProductID int       `json:"productId"`
-	Timestamp time.Time `json:"timestamp"`
-}
+func NewEvent(userId int, activity string, productId int, happenedAt time.Time) (Event, error) {
 
-func NewEvent(userId int, action string, productId int, timestamp time.Time) (Event, error) {
-
-	switch action {
+	switch activity {
 	case "view", "addToCart", "purchase":
 		return Event{
-			EventID:   uuid.New().String(),
-			UserID:    userId,
-			Action:    action,
-			ProductID: productId,
-			Timestamp: timestamp,
+			EventID:    uuid.New().String(),
+			UserID:     userId,
+			Activity:   activity,
+			ProductID:  productId,
+			HappenedAt: happenedAt,
 		}, nil
 	default:
 		return Event{}, errors.New("undefined event")
 	}
 
+}
+
+type EventDTO struct {
+	UserID     int       `json:"userId"`
+	Activity   string    `json:"action"`
+	ProductID  int       `json:"productId"`
+	HappenedAt time.Time `json:"timestamp"`
+}
+
+func NewEventDTO(userId int, activity string, productId int, happenedAt time.Time) EventDTO {
+
+	return EventDTO{
+		UserID:     userId,
+		Activity:   activity,
+		ProductID:  productId,
+		HappenedAt: happenedAt,
+	}
 }

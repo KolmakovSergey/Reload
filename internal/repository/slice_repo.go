@@ -1,13 +1,14 @@
 package repository
 
 import (
+	"errors"
 	"reload/internal/models"
 	"sync"
 )
 
 type EventRepo struct {
 	Storage []models.Event
-	mu     sync.RWMutex
+	mu      sync.RWMutex
 }
 
 func NewEventSliceRepo(events []models.Event) *EventRepo {
@@ -16,11 +17,18 @@ func NewEventSliceRepo(events []models.Event) *EventRepo {
 	}
 }
 
-func (e *EventRepo) SaveEvent(event models.Event) error {
+func (e *EventRepo) SaveEvent(event models.EventDTO) error {
+
+	newEvent, err := models.NewEvent(event.UserID, event.Activity, event.ProductID, event.HappenedAt)
+	if err != nil {
+		return errors.New("unable to save event with incorrect data")
+	}
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	e.Storage = append(e.Storage, event)
-	
+
+	e.Storage = append(e.Storage, newEvent)
+
 	return nil
 }
 
@@ -47,7 +55,7 @@ func (e *EventRepo) GetAllEvents() ([]models.Event, error) {
 	defer e.mu.RUnlock()
 
 	eventsCopy := make([]models.Event, len(e.Storage))
-    copy(eventsCopy, e.Storage)
-	
+	copy(eventsCopy, e.Storage)
+
 	return eventsCopy, nil
 }
