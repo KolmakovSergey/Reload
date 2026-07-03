@@ -1,9 +1,11 @@
 package repository
 
-import "reload/internal/models"
+import (
+	"reload/internal/models"
+)
 
 type EventStorage interface {
-	SaveEvent(event models.Event) error
+	SaveEvent(event models.EventDTO) error
 	GetEventsByUserId(id int) ([]models.Event, error)
 	GetAllEvents() ([]models.Event, error)
 }
